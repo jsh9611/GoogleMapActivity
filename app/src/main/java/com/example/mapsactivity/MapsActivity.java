@@ -5,6 +5,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -35,15 +38,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-//        // GoogleAPIClient의 인스턴스 생성
-//        if (mGoogleApiClient == null) {
-//            mGoogleApiClient = new GoogleApiClient.Builder(this)
-//                    .addConnectionCallbacks(this)
-//                    .addOnConnectionFailedListener(this)
-//                    .addApi(LocationServices.API)
-//                    .build();
-//        }
-
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -65,26 +59,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        //37.337352, 127.254140
-        LatLng sydney = new LatLng(37.337352, 127.254140);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("장성훈의 자취방"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        //장성훈의 자취방 핀 생성
+        LatLng myhome = new LatLng(37.337352, 127.254140);
+        mMap.addMarker(new MarkerOptions().position(myhome).title("장성훈의 자취방"));
 
-        //카메라를 확대해준다.
+        //카메라를 이동
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(myhome));
+
+        //카메라를 확대
         mMap.animateCamera(CameraUpdateFactory.zoomTo(17.0f));
 
-        // 정보창을 클릭하면 전화를 걸어준다.
+        //정보창을 클릭시 전화
         mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(Marker marker) {
                 Intent intent = new Intent(Intent.ACTION_DIAL);
-                intent.setData(Uri.parse("tel:114"));
+                intent.setData(Uri.parse("tel:01012341234"));
                 if (intent.resolveActivity(getPackageManager()) != null) {
                     startActivity(intent);
                 }
             }
         });
+
     }
 
     public void onLastLocationButtonClicked(View view) {
@@ -101,12 +97,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //권한이 있다면
         mFusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
             @Override
-            public void onSuccess(Location location) {
+            public void onSuccess(final Location location) {
                 if (location != null) {
                     LatLng myLocation = new LatLng(location.getLatitude(), location.getLongitude()); //위도와 경도 잡아줌
                     mMap.addMarker(new MarkerOptions().position(myLocation).title("현재 위치"));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
                     mMap.animateCamera(CameraUpdateFactory.zoomTo(17.0f));
+
+                    // 클립보드 객체 얻기
+                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    // 클립데이터 생성
+                    ClipData clipData = ClipData.newPlainText("Test Clipboard",
+                            "위도 : " + location.getLatitude() +
+                            ", 경도 : " + location.getLongitude());
+                    // 클립보드에 추가
+                    clipboardManager.setPrimaryClip(clipData);
+
+                    Toast.makeText(MapsActivity.this,
+                            "현재 위치의 위도와 경도가 클립보드에 복사되었습니다. " +
+                                    "\n위도 : " + location.getLatitude() +
+                                    "\n경도 : " + location.getLongitude(), Toast.LENGTH_LONG).show();
                 }
 
             }
